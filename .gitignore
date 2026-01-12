@@ -1,11 +1,13 @@
 /dataset
 /plots
 *.zip
+*.csv
 *.npz
 *.npy
 *.pkl
-*.log
 *.pth
+*.log
+*.safetensors
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

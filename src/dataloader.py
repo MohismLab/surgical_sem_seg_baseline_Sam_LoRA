@@ -65,8 +65,9 @@ class DatasetSegmentation(Dataset):
 
         # 改成从json获取
         # train_set
-        if mode == "train":
-            json_path = "/mnt/hdd2/task2/sam_lora/output_bbox_train.json"
+        if "train" in mode: # ["train1", "train2", "train3", "train4", "train5"]
+            json_path = f"/mnt/hdd2/task2/sam_lora/output_bbox_{mode}.json"
+            print(f"train set: {json_path}")
             # 从JSON文件加载数据
             with open(json_path, 'r') as f:
                 all_data = json.load(f)
@@ -102,9 +103,10 @@ class DatasetSegmentation(Dataset):
                     self.bboxes.append(info["bbox"])       
             # print(f"imgs: {self.img_files}")
             # print(f"masks: {self.mask_files}")
-        elif mode == "val":
+        elif "val" in mode: # ["val1", "val2", "val3", "val4", "val5"]
             # val_set
-            json_path = "/mnt/hdd2/task2/sam_lora/output_bbox_val.json"
+            json_path = f"/mnt/hdd2/task2/sam_lora/output_bbox_{mode}.json"
+            print(f"val set: {json_path}")
             # 从JSON文件加载数据
             with open(json_path, 'r') as f:
                 all_data = json.load(f)
@@ -115,7 +117,7 @@ class DatasetSegmentation(Dataset):
             self.bboxes = []
             
             # 获取基础路径
-            base_path_val = "/mnt/hdd2/task2/sam_lora/val"
+            base_path_val = "/mnt/hdd2/task2/sam_lora/train"
             # 从JSON中提取当前模式的数据
             mode_data = all_data.get(mode, {})
             

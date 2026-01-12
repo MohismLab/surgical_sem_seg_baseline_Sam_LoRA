@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from medpy import metric
 import torch
@@ -23,9 +24,12 @@ The model is saved at the end as a safetensor.
 
 每次训练前：
 1. 修改 /home/lq/Projects_qin/surgical_semantic_seg/benmarking_algorithms/Sam_LoRA/config.yaml
-2. 修改实验编号 num_exp = 1
+2. 修改下面代码的实验编号 num_exp = 1，如果是5折训练，则修改如下两行代码中的mode为对应csv的名称（["train1", "train2", "train3", "train4", "train5"], ["val1", "val2", "val3", "val4", "val5"]）：
+train_ds = DatasetSegmentation(config_file, processor, mode="train")
+val_ds = DatasetSegmentation(config_file, processor, mode="val")
 3. 修改train{}.log：
 CUDA_VISIBLE_DEVICES=? nohup poetry run python train.py > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train1.log 2>&1 &
+进程结束后请将log归类到相应的文件夹：mv /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train3.log /mnt/hdd2/task2/sam_lora/exp_3/
 4. 预测：
 CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_eval.py
 > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/inf_eval1.log 2>&1 &
@@ -47,7 +51,14 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 """
 
 # 实验编号
-num_exp = 1
+# num_exp = 3
+##################################################################################
+# 1月12号 2、3折训练 num_exp = 3 改为 4、5
+num_exp = 5
+##################################################################################
+
+exp_dir = os.path.join("/mnt/hdd2/task2/sam_lora", f"exp_{num_exp}")
+os.makedirs(exp_dir, exist_ok=True)
 
 def calculate_metrics(pred, target):
     """
@@ -120,11 +131,19 @@ model = sam_lora.sam
 processor = Samprocessor(model)
 
 # Create train dataloader
-train_ds = DatasetSegmentation(config_file, processor, mode="train")
+# train_ds = DatasetSegmentation(config_file, processor, mode="train1")
+##################################################################################
+# 1月12号 2、3折训练 train2、3
+train_ds = DatasetSegmentation(config_file, processor, mode="train3")
+##################################################################################
 train_dataloader = DataLoader(train_ds, batch_size=config_file["TRAIN"]["BATCH_SIZE"], shuffle=True, collate_fn=collate_fn)
 
 # Create val dataloader
-val_ds = DatasetSegmentation(config_file, processor, mode="val")
+# val_ds = DatasetSegmentation(config_file, processor, mode="val1")
+##################################################################################
+# 1月12号 2、3折训练 val2、3
+val_ds = DatasetSegmentation(config_file, processor, mode="val3")
+##################################################################################
 val_dataloader = DataLoader(val_ds, batch_size=1, shuffle=False, collate_fn=collate_fn)  # 验证集batch_size=1确保样本级评估
 
 # Initialize optimize and Loss
@@ -244,7 +263,9 @@ for epoch in range(num_epochs):
         best_iou = val_mean_iou
         no_improve_epochs = 0
         rank = config_file["SAM"]["RANK"]
-        sam_lora.save_lora_parameters(f"lora_rank{rank}_{epoch+1}_epoch_in_{num_epochs}_epochs_best_{num_exp}.safetensors")
+        sam_lora.save_lora_parameters(os.path.join(
+            exp_dir, f"lora_rank{rank}_{epoch+1}_epoch_in_{num_epochs}_epochs_best_{num_exp}.safetensors"
+        ))
         print(f"New best model saved with IoU: {best_iou:.4f}")
     else:
         no_improve_epochs += 1
@@ -258,7 +279,9 @@ for epoch in range(num_epochs):
 
 # Save the parameters of the model in safetensors format
 rank = config_file["SAM"]["RANK"]
-sam_lora.save_lora_parameters(f"lora_rank{rank}_{epoch+1}_epoch_in_{num_epochs}_epochs_final_{num_exp}.safetensors")
+sam_lora.save_lora_parameters(os.path.join(
+            exp_dir, f"lora_rank{rank}_{epoch+1}_epoch_in_{num_epochs}_epochs_final_{num_exp}.safetensors"
+))
 print(f"Final model saved after {epoch+1} epochs")
 
 # 可视化训练和验证指标
@@ -305,6 +328,6 @@ plt.legend()
 
 # 调整布局并保存
 plt.tight_layout()
-output_path = f"/home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/training_metrics_{num_exp}.png"
+output_path = os.path.join(exp_dir, f"training_metrics_{num_exp}.png")
 plt.savefig(output_path)
 print(f"Training metrics visualization saved to {output_path}")
