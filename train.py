@@ -51,11 +51,7 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 """
 
 # 实验编号
-# num_exp = 3
-##################################################################################
-# 1月12号 2、3折训练 num_exp = 3 改为 4、5
-num_exp = 5
-##################################################################################
+num_exp = 8
 
 exp_dir = os.path.join("/mnt/hdd2/task2/sam_lora", f"exp_{num_exp}")
 os.makedirs(exp_dir, exist_ok=True)
@@ -132,19 +128,20 @@ processor = Samprocessor(model)
 
 # Create train dataloader
 # train_ds = DatasetSegmentation(config_file, processor, mode="train1")
-##################################################################################
-# 1月12号 2、3折训练 train2、3
-train_ds = DatasetSegmentation(config_file, processor, mode="train3")
-##################################################################################
-train_dataloader = DataLoader(train_ds, batch_size=config_file["TRAIN"]["BATCH_SIZE"], shuffle=True, collate_fn=collate_fn)
+train_ds = DatasetSegmentation(config_file, processor, mode="train5")
+train_dataloader = DataLoader(train_ds, 
+                              batch_size=config_file["TRAIN"]["BATCH_SIZE"], 
+                              shuffle=True, 
+                              collate_fn=collate_fn)
 
 # Create val dataloader
 # val_ds = DatasetSegmentation(config_file, processor, mode="val1")
-##################################################################################
-# 1月12号 2、3折训练 val2、3
-val_ds = DatasetSegmentation(config_file, processor, mode="val3")
-##################################################################################
-val_dataloader = DataLoader(val_ds, batch_size=1, shuffle=False, collate_fn=collate_fn)  # 验证集batch_size=1确保样本级评估
+val_ds = DatasetSegmentation(config_file, processor, mode="val5")
+val_dataloader = DataLoader(val_ds, 
+                            batch_size=1, 
+                            shuffle=False,
+                            collate_fn=collate_fn)  # 验证集batch_size=1确保样本级评估
+                            
 
 # Initialize optimize and Loss
 optimizer = Adam(model.image_encoder.parameters(), lr=1e-4, weight_decay=0)

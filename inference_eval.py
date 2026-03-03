@@ -24,7 +24,23 @@ from medpy import metric
 This file compute the evaluation metric (Dice cross entropy loss) for all trained LoRA SAM with different ranks. This gives the plot that is in ./plots/rank_comparison.jpg
 which compares the performances on test the test set.
 
-CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_eval.py > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/eval_19_final.log 2>&1 &
+1. modify 
+lora_mode = 
+num_patient = 
+num_fold =
+safetensors_path = 
+
+num_exp-training csv files pairs:
+[
+num_fold = 0 num_exp = 3 train1.csv
+num_fold = 1 num_exp = 6 train2.csv
+num_fold = 2 num_exp = 5 train3.csv
+num_fold = 3 num_exp = 7 train4.csv
+num_fold = 4 num_exp = 8 train5.csv
+]
+
+2. modify the path of log file '/exp_5/eval_0fold_19_final.log' and run:
+CUDA_VISIBLE_DEVICES=1 nohup poetry run python inference_eval.py > /mnt/hdd2/task2/sam_lora/exp_6/eval_1fold_19_final.log 2>&1 &
 """
 
 # ind = 0
@@ -86,7 +102,20 @@ def calculate_metrics(pred, target):
     return dice, iou, hd95
 
 lora_mode = "final" # "best"
-num_patient = 19 # 78 24 71 76
+num_patient = 78 # 19 24 71 76 78
+num_fold = 4 # [0 1 2 3 4] for 5 folds; 'all' for training on all data
+
+# safetensors_path = f"/home/lq/Projects_qin/surgical_semantic_seg/experiments/SAM_LoRA/experiment_2/{lora_mode}_model_rank2_7_epoch_in100epochs.safetensors"
+# 0 fold
+# safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_3/lora_rank2_35_epoch_in_100_epochs_final_3.safetensors"
+# 1 fold
+# safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_6/lora_rank2_15_epoch_in_100_epochs_final_6.safetensors"
+# 2 fold
+# safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_5/lora_rank2_22_epoch_in_100_epochs_final_5.safetensors"
+# 3 fold
+# safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_7/lora_rank2_24_epoch_in_100_epochs_final_7.safetensors"
+# 4 fold
+safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_8/lora_rank2_27_epoch_in_100_epochs_final_8.safetensors"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seg_loss = monai.losses.DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
@@ -117,9 +146,7 @@ for rank in rank_list:
         "hd95": []
     }
 
-# safetensors_path = f"/home/lq/Projects_qin/surgical_semantic_seg/experiments/SAM_LoRA/experiment_2/{lora_mode}_model_rank2_7_epoch_in100epochs.safetensors"
-safetensors_path = f"/home/lq/Projects_qin/surgical_semantic_seg/experiments/SAM_LoRA/experiment_2/final_model_rank2_12_epoch_in100epochs.safetensors"
-fig_path = f"/mnt/hdd2/task2/sam_lora/eval_{num_patient}_{lora_mode}" # _without_bbox
+fig_path = f"/mnt/hdd2/task2/sam_lora/eval_{num_fold}fold_{num_patient}_{lora_mode}" # _without_bbox
 
 csv_path = f"{fig_path}/results_inf_eval_rank{rank_list[0]}.csv"
 
