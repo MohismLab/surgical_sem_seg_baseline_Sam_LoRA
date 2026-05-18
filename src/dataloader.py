@@ -144,7 +144,7 @@ class DatasetSegmentation(Dataset):
         else:
             # test set
             # 从JSON文件加载数据
-            json_path = "/mnt/hdd2/task2/sam_lora/output_bbox_test_19.json"
+            json_path = "/mnt/hdd2/task2/sam_lora/output_bbox_test.json"
             with open(json_path, 'r') as f:
                 all_data = json.load(f)
             

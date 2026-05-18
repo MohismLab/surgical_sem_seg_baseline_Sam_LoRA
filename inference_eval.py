@@ -21,6 +21,8 @@ import monai
 import numpy as np
 from medpy import metric
 """
+The new evaluation version is '/home/lq/Projects_qin/surgical_semantic_seg/dataset_processed/utils_tools/inference_5fold_class_level_eval.py'
+
 This file compute the evaluation metric (Dice cross entropy loss) for all trained LoRA SAM with different ranks. This gives the plot that is in ./plots/rank_comparison.jpg
 which compares the performances on test the test set.
 
@@ -40,7 +42,8 @@ num_fold = 4 num_exp = 8 train5.csv
 ]
 
 2. modify the path of log file '/exp_5/eval_0fold_19_final.log' and run:
-CUDA_VISIBLE_DEVICES=1 nohup poetry run python inference_eval.py > /mnt/hdd2/task2/sam_lora/exp_6/eval_1fold_19_final.log 2>&1 &
+CUDA_VISIBLE_DEVICES=0 nohup poetry run python inference_eval.py \
+> /mnt/hdd2/task2/sam_lora/exp_9/eval_0fold_19_final.log 2>&1 &
 """
 
 # ind = 0
@@ -72,7 +75,8 @@ def calculate_metrics(pred, target):
     
     try:
         if np.sum(pred_binary) > 0 and np.sum(label_binary) > 0:
-            hd95 = metric.binary.hd95(pred_binary, label_binary)
+            # hd95 = metric.binary.hd95(pred_binary, label_binary)
+            hd95 = metric.binary.hd95(pred_binary.squeeze(), label_binary.squeeze())
         else:
             hd95 = np.nan
     except:
@@ -102,12 +106,12 @@ def calculate_metrics(pred, target):
     return dice, iou, hd95
 
 lora_mode = "final" # "best"
-num_patient = 78 # 19 24 71 76 78
-num_fold = 4 # [0 1 2 3 4] for 5 folds; 'all' for training on all data
+num_patient = 19 # 19 24 71 76 78
+num_fold = 0 # [0 1 2 3 4] for 5 folds; 'all' for training on all data
 
 # safetensors_path = f"/home/lq/Projects_qin/surgical_semantic_seg/experiments/SAM_LoRA/experiment_2/{lora_mode}_model_rank2_7_epoch_in100epochs.safetensors"
 # 0 fold
-# safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_3/lora_rank2_35_epoch_in_100_epochs_final_3.safetensors"
+safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_3/lora_rank2_35_epoch_in_100_epochs_final_3.safetensors"
 # 1 fold
 # safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_6/lora_rank2_15_epoch_in_100_epochs_final_6.safetensors"
 # 2 fold
@@ -115,7 +119,7 @@ num_fold = 4 # [0 1 2 3 4] for 5 folds; 'all' for training on all data
 # 3 fold
 # safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_7/lora_rank2_24_epoch_in_100_epochs_final_7.safetensors"
 # 4 fold
-safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_8/lora_rank2_27_epoch_in_100_epochs_final_8.safetensors"
+# safetensors_path = f"/mnt/hdd2/task2/sam_lora/exp_8/lora_rank2_27_epoch_in_100_epochs_final_8.safetensors"
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 seg_loss = monai.losses.DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
