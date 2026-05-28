@@ -144,18 +144,7 @@ val_dataloader = DataLoader(val_ds,
                             
 
 # Initialize optimize and Loss
-# optimizer = Adam(model.image_encoder.parameters(), lr=1e-4, weight_decay=0)
-optimizer = Adam(
-    list(model.image_encoder.parameters()) + list(model.mask_decoder.parameters()),
-    lr=1e-4, weight_decay=0
-)
-
-# different learning rates for the image encoder and the mask decoder
-# optimizer = Adam([
-#     {"params": [p for p in model.image_encoder.parameters() if p.requires_grad], "lr": 1e-4},
-#     {"params": model.mask_decoder.parameters(), "lr": 1e-5},
-# ], weight_decay=0)
-
+optimizer = Adam(model.image_encoder.parameters(), lr=1e-4, weight_decay=0)
 seg_loss = monai.losses.DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
 num_epochs = config_file["TRAIN"]["NUM_EPOCHS"]
 

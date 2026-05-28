@@ -130,44 +130,80 @@ class LoRA_sam(nn.Module):
             nn.init.zeros_(w_B.weight)
 
 
+    # def save_lora_parameters(self, filename: str):
+    #     """
+    #     Save the LoRA wieghts applied to the attention model as safetensors.
+
+    #     Arguments:
+    #         filenmame: Name of the file that will be saved
+        
+    #     Return:
+    #         None: Saves a safetensors file
+    #     """
+    #     num_layer = len(self.A_weights)
+    #     # sufix 03:d -> allows to have a name 1 instead of 001
+    #     a_tensors = {f"w_a_{i:03d}": self.A_weights[i].weight for i in range(num_layer)}
+    #     b_tensors = {f"w_b_{i:03d}": self.B_weights[i].weight for i in range(num_layer)}
+    #     merged_dict = {**a_tensors, **b_tensors}
+    #     save_file(merged_dict, filename)
+
     def save_lora_parameters(self, filename: str):
         """
-        Save the LoRA wieghts applied to the attention model as safetensors.
-
-        Arguments:
-            filenmame: Name of the file that will be saved
-        
-        Return:
-            None: Saves a safetensors file
+        Save the LoRA weights + mask_decoder weights as safetensors.
         """
         num_layer = len(self.A_weights)
-        # sufix 03:d -> allows to have a name 1 instead of 001
         a_tensors = {f"w_a_{i:03d}": self.A_weights[i].weight for i in range(num_layer)}
         b_tensors = {f"w_b_{i:03d}": self.B_weights[i].weight for i in range(num_layer)}
-        merged_dict = {**a_tensors, **b_tensors}
+        # 加上 decoder 权重，用 "decoder." 前缀做命名空间隔离
+        decoder_tensors = {
+            f"decoder.{k}": v.contiguous()
+            for k, v in self.sam.mask_decoder.state_dict().items()
+        }
+        merged_dict = {**a_tensors, **b_tensors, **decoder_tensors}
         save_file(merged_dict, filename)
 
 
+    # def load_lora_parameters(self, filename: str):
+    #     """
+    #     Load a safetensor file of LoRA weights for the attention modules
+
+    #     Arguments:
+    #         filename: Name of the file containing the saved weights
+        
+    #     Return:
+    #         None: Loads the weights to the LoRA_sam class
+    #     """
+    #     with safe_open(filename, framework="pt") as f:
+    #         for i, w_A_linear in enumerate(self.A_weights):
+    #             saved_key = f"w_a_{i:03d}"
+    #             saved_tensor = f.get_tensor(saved_key)
+    #             w_A_linear.weight = nn.Parameter(saved_tensor)
+
+    #         for i, w_B_linear in enumerate(self.B_weights):
+    #             saved_key = f"w_b_{i:03d}"
+    #             saved_tensor = f.get_tensor(saved_key)
+    #             w_B_linear.weight = nn.Parameter(saved_tensor)
+
     def load_lora_parameters(self, filename: str):
         """
-        Load a safetensor file of LoRA weights for the attention modules
-
-        Arguments:
-            filename: Name of the file containing the saved weights
-        
-        Return:
-            None: Loads the weights to the LoRA_sam class
+        Load LoRA weights + mask_decoder weights from a safetensors file.
         """
         with safe_open(filename, framework="pt") as f:
+            # LoRA A
             for i, w_A_linear in enumerate(self.A_weights):
-                saved_key = f"w_a_{i:03d}"
-                saved_tensor = f.get_tensor(saved_key)
+                saved_tensor = f.get_tensor(f"w_a_{i:03d}")
                 w_A_linear.weight = nn.Parameter(saved_tensor)
-
+            # LoRA B
             for i, w_B_linear in enumerate(self.B_weights):
-                saved_key = f"w_b_{i:03d}"
-                saved_tensor = f.get_tensor(saved_key)
+                saved_tensor = f.get_tensor(f"w_b_{i:03d}")
                 w_B_linear.weight = nn.Parameter(saved_tensor)
+            # mask_decoder
+            decoder_state_dict = {
+                key[len("decoder."):]: f.get_tensor(key)
+                for key in f.keys() if key.startswith("decoder.")
+            }
+            if decoder_state_dict:
+                self.sam.mask_decoder.load_state_dict(decoder_state_dict)
 
 with open("./config.yaml", "r") as ymlfile:
    config_file = yaml.load(ymlfile, Loader=yaml.Loader)
