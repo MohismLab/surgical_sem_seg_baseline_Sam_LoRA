@@ -1,3 +1,12 @@
+"""
+2026年05月28日 做带有decoder的sam_lora五折训练
+
+对于fold0 实验编号是num_exp=9 记得改train_ds和val_ds
+
+对于fold1 实验编号是num_exp=10
+
+对于fold2 实验编号是num_exp=11
+"""
 import os
 import numpy as np
 from medpy import metric
@@ -51,7 +60,7 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 """
 
 # 实验编号
-num_exp = 8
+num_exp = 11
 
 exp_dir = os.path.join("/mnt/hdd2/task2/sam_lora", f"exp_{num_exp}")
 os.makedirs(exp_dir, exist_ok=True)
@@ -128,7 +137,7 @@ processor = Samprocessor(model)
 
 # Create train dataloader
 # train_ds = DatasetSegmentation(config_file, processor, mode="train1")
-train_ds = DatasetSegmentation(config_file, processor, mode="train5")
+train_ds = DatasetSegmentation(config_file, processor, mode="train3")
 train_dataloader = DataLoader(train_ds, 
                               batch_size=config_file["TRAIN"]["BATCH_SIZE"], 
                               shuffle=True, 
@@ -136,7 +145,7 @@ train_dataloader = DataLoader(train_ds,
 
 # Create val dataloader
 # val_ds = DatasetSegmentation(config_file, processor, mode="val1")
-val_ds = DatasetSegmentation(config_file, processor, mode="val5")
+val_ds = DatasetSegmentation(config_file, processor, mode="val3")
 val_dataloader = DataLoader(val_ds, 
                             batch_size=1, 
                             shuffle=False,
