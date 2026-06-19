@@ -19,6 +19,20 @@ This file's difference with train.py:
 对于fold2 实验编号是num_exp=11
 
 对于fold3 实验编号是num_exp=12
+
+未完成: 对于fold4 实验编号是num_exp=13
+
+2026年06月19日 做带有decoder的sam_lora + data accumulation五折训练
+
+对于fold0 实验编号是num_exp=14 记得改train_ds和val_ds
+
+未完成: 对于fold1 实验编号是num_exp=15
+
+未完成: 对于fold2 实验编号是num_exp=16
+
+未完成: 对于fold3 实验编号是num_exp=17
+
+未完成: 对于fold4 实验编号是num_exp=18
 """
 import os
 import numpy as np
@@ -56,6 +70,10 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python train_batch_accumulation.py > /ho
 CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_eval.py
 > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/inf_eval1.log 2>&1 &
 
+CUDA_VISIBLE_DEVICES=? nohup python \
+train_batch_accumulation.py \
+> /mnt/common-train-data/task2/sam_lora/train1_data_accumulation.log 2>&1 &
+
 可视化：
 CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/inf_plot1.log 2>&1 &
@@ -73,7 +91,7 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 """
 
 # 实验编号
-num_exp = 12
+num_exp = 14
 
 exp_dir = os.path.join("/mnt/hdd2/task2/sam_lora", f"exp_{num_exp}")
 os.makedirs(exp_dir, exist_ok=True)
@@ -248,7 +266,7 @@ for epoch in range(num_epochs):
       # 最后一个窗口可能不足 accumulation_steps，需用 remainder 缩放以保证权重正确
       # 假设accumulation_steps = 8, 一个epoch有num_batches = 22, remainder = 22 % 8 = 6
       # 最后一个窗口应该按 6 来缩放，而不是按 8
-      
+
       is_last_window = (i // accumulation_steps) == (num_batches // accumulation_steps) and remainder != 0
       current_window = remainder if is_last_window else accumulation_steps
       print(f"Current window: {current_window} batches")
