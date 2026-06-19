@@ -246,6 +246,9 @@ for epoch in range(num_epochs):
 
       # 梯度累积：loss 按当前窗口实际的 batch 数缩放后反向传播
       # 最后一个窗口可能不足 accumulation_steps，需用 remainder 缩放以保证权重正确
+      # 假设accumulation_steps = 8, 一个epoch有num_batches = 22, remainder = 22 % 8 = 6
+      # 最后一个窗口应该按 6 来缩放，而不是按 8
+      
       is_last_window = (i // accumulation_steps) == (num_batches // accumulation_steps) and remainder != 0
       current_window = remainder if is_last_window else accumulation_steps
       print(f"Current window: {current_window} batches")
