@@ -1,4 +1,15 @@
 """
+This file's difference with train.py:
+- optimizer.zero_grad() moved out loop, called once before the loop.
+- Loss is scaled by 1/accumulation_steps before backward() so the accumulated gradient equals the average over BATCH_ACCUMULATION_SIZE samples
+  (matching what a real batch of BATCH_ACCUMULATION_SIZE would produce).
+- optimizer.step() + zero_grad() fire only when (i+1) % accumulation_steps == 0, or at the last batch of the epoch
+  (so leftover gradients from a non-divisible final chunk aren't discarded).
+- epoch_losses still records the unscaled per-iteration loss, so loss logging/plots are unaffected.
+- The loss scaling assumes each iteration has the same batch size. 
+  The final batch of an epoch may be smaller (if dataset size isn't divisible by BATCH_SIZE), giving it slightly more weight.
+
+
 2026年05月28日 做带有decoder的sam_lora五折训练
 
 对于fold0 实验编号是num_exp=9 记得改train_ds和val_ds
@@ -39,7 +50,7 @@ The model is saved at the end as a safetensor.
 train_ds = DatasetSegmentation(config_file, processor, mode="train")
 val_ds = DatasetSegmentation(config_file, processor, mode="val")
 3. 修改train{}.log：
-CUDA_VISIBLE_DEVICES=? nohup poetry run python train.py > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train1.log 2>&1 &
+CUDA_VISIBLE_DEVICES=? nohup poetry run python train_batch_accumulation.py > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train1.log 2>&1 &
 进程结束后请将log归类到相应的文件夹：mv /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train3.log /mnt/hdd2/task2/sam_lora/exp_3/
 4. 预测：
 CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_eval.py
@@ -184,6 +195,14 @@ model.to(device)
 #     verbose=True
 # )
 
+# batch accumulation variables
+batch_size = config_file["TRAIN"]["BATCH_SIZE"]
+batch_accumulation_size = config_file["TRAIN"]["BATCH_ACCUMULATION_SIZE"]
+# 梯度累积步数：每累积满 batch_accumulation_size 个样本才更新一次参数
+# With BATCH_SIZE=2 and BATCH_ACCUMULATION_SIZE=128, that's 64 iterations per optimizer step (64 × 2 = 128 samples).
+accumulation_steps = max(1, batch_accumulation_size // batch_size)
+
+
 # 早停和模型保存相关变量
 best_iou = 0.0
 patience = 5
@@ -207,8 +226,15 @@ for epoch in range(num_epochs):
     
     model.train()
 
+    optimizer.zero_grad()
+
+    num_batches = len(train_dataloader)
+    # 最后一个累积窗口实际包含的 batch 数（可能不足 accumulation_steps）
+    remainder = num_batches % accumulation_steps
+    print(f"Total training batches: {num_batches}, Accumulation steps: {accumulation_steps}, Remainder batches in last window: {remainder}")
+
     for i, batch in enumerate(tqdm(train_dataloader)):
-      
+
       outputs = model(batched_input=batch,
                       multimask_output=False)
 
@@ -218,10 +244,19 @@ for epoch in range(num_epochs):
       loss = seg_loss(stk_out, stk_gt.float().to(device))
       iou = calculate_iou(stk_out, stk_gt.float().to(device))
 
-      optimizer.zero_grad()
-      loss.backward()
-      # optimize
-      optimizer.step()
+      # 梯度累积：loss 按当前窗口实际的 batch 数缩放后反向传播
+      # 最后一个窗口可能不足 accumulation_steps，需用 remainder 缩放以保证权重正确
+      is_last_window = (i // accumulation_steps) == (num_batches // accumulation_steps) and remainder != 0
+      current_window = remainder if is_last_window else accumulation_steps
+      print(f"Current window: {current_window} batches")
+
+      (loss / current_window).backward()
+
+      # 每累积满 accumulation_steps 步、或到达 epoch 末尾时更新一次参数
+      if (i + 1) % accumulation_steps == 0 or (i + 1) == num_batches:
+          optimizer.step()
+          optimizer.zero_grad()
+
       epoch_losses.append(loss.item())
       epoch_ious.append(iou)
 
