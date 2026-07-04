@@ -19,20 +19,6 @@ This file's difference with train.py:
 对于fold2 实验编号是num_exp=11
 
 对于fold3 实验编号是num_exp=12
-
-未完成: 对于fold4 实验编号是num_exp=13
-
-2026年06月19日 做带有decoder的sam_lora + data accumulation五折训练
-
-对于fold0 实验编号是num_exp=14 记得改train_ds和val_ds
-
-未完成: 对于fold1 实验编号是num_exp=15
-
-未完成: 对于fold2 实验编号是num_exp=16
-
-未完成: 对于fold3 实验编号是num_exp=17
-
-未完成: 对于fold4 实验编号是num_exp=18
 """
 import os
 import numpy as np
@@ -60,19 +46,20 @@ The model is saved at the end as a safetensor.
 
 每次训练前：
 1. 修改 /home/lq/Projects_qin/surgical_semantic_seg/benmarking_algorithms/Sam_LoRA/config.yaml
+
 2. 修改下面代码的实验编号 num_exp = 1，如果是5折训练，则修改如下两行代码中的mode为对应csv的名称（["train1", "train2", "train3", "train4", "train5"], ["val1", "val2", "val3", "val4", "val5"]）：
 train_ds = DatasetSegmentation(config_file, processor, mode="train")
 val_ds = DatasetSegmentation(config_file, processor, mode="val")
-3. 修改train{}.log：
-CUDA_VISIBLE_DEVICES=? nohup poetry run python train_batch_accumulation.py > /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train1.log 2>&1 &
-进程结束后请将log归类到相应的文件夹：mv /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train3.log /mnt/hdd2/task2/sam_lora/exp_3/
-4. 预测：
-CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_eval.py
-> /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/inf_eval1.log 2>&1 &
 
+3. 修改train{}.log：
 CUDA_VISIBLE_DEVICES=? nohup python \
 train_batch_accumulation.py \
 > /mnt/common-train-data/task2/sam_lora/train1_data_accumulation.log 2>&1 &
+
+进程结束后请将log归类到相应的文件夹：mv /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/train3.log /mnt/common-train-data/task2/sam_lora/exp_{num_exp}/
+4. 预测：
+CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_eval.py
+> /home/lq/Projects_qin/surgical_semantic_seg/proposed_algorithm/SAM_LoRA/inf_eval1.log 2>&1 &
 
 可视化：
 CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
@@ -93,7 +80,7 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 # 实验编号
 num_exp = 14
 
-exp_dir = os.path.join("/mnt/hdd2/task2/sam_lora", f"exp_{num_exp}")
+exp_dir = os.path.join("/mnt/common-train-data/task2/sam_lora", f"exp_{num_exp}")
 os.makedirs(exp_dir, exist_ok=True)
 
 def calculate_metrics(pred, target):
@@ -167,16 +154,16 @@ model = sam_lora.sam
 processor = Samprocessor(model)
 
 # Create train dataloader
-# train_ds = DatasetSegmentation(config_file, processor, mode="train1")
-train_ds = DatasetSegmentation(config_file, processor, mode="train4")
+train_ds = DatasetSegmentation(config_file, processor, mode="train1")
+# train_ds = DatasetSegmentation(config_file, processor, mode="train4")
 train_dataloader = DataLoader(train_ds, 
                               batch_size=config_file["TRAIN"]["BATCH_SIZE"], 
                               shuffle=True, 
                               collate_fn=collate_fn)
 
 # Create val dataloader
-# val_ds = DatasetSegmentation(config_file, processor, mode="val1")
-val_ds = DatasetSegmentation(config_file, processor, mode="val4")
+val_ds = DatasetSegmentation(config_file, processor, mode="val1")
+# val_ds = DatasetSegmentation(config_file, processor, mode="val4")
 val_dataloader = DataLoader(val_ds, 
                             batch_size=1, 
                             shuffle=False,
@@ -266,7 +253,7 @@ for epoch in range(num_epochs):
       # 最后一个窗口可能不足 accumulation_steps，需用 remainder 缩放以保证权重正确
       # 假设accumulation_steps = 8, 一个epoch有num_batches = 22, remainder = 22 % 8 = 6
       # 最后一个窗口应该按 6 来缩放，而不是按 8
-
+      
       is_last_window = (i // accumulation_steps) == (num_batches // accumulation_steps) and remainder != 0
       current_window = remainder if is_last_window else accumulation_steps
       print(f"Current window: {current_window} batches")
