@@ -21,6 +21,7 @@ This file's difference with train.py:
 对于fold3 实验编号是num_exp=12
 """
 import os
+import random
 import numpy as np
 from medpy import metric
 import torch
@@ -76,6 +77,16 @@ CUDA_VISIBLE_DEVICES=? nohup poetry run python inference_plots.py
 # 【但是这个mask是所有物体都在一张二值图】
 # 【把每张图的所有类都单独抠出来了】
 """
+
+def set_seed(seed=1049):
+    """固定随机种子以保证可复现性（需在建模型/DataLoader 之前调用）"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 # 实验编号
 num_exp = 14
@@ -145,6 +156,8 @@ with open("./config.yaml", "r") as ymlfile:
 
 # Take dataset path
 train_dataset_path = config_file["DATASET"]["TRAIN_PATH"]
+# 固定随机种子（必须在建模型和 DataLoader 之前调用）
+set_seed(1049)
 # Load SAM model
 sam = build_sam_vit_b(checkpoint=config_file["SAM"]["CHECKPOINT"])
 #Create SAM LoRA
