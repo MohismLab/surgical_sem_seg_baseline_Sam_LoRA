@@ -187,16 +187,21 @@ class LoRA_sam(nn.Module):
     def load_lora_parameters(self, filename: str):
         """
         Load LoRA weights + mask_decoder weights from a safetensors file.
+
+        In-place copy (设备 + Parameter 对象双保留): 每个 LoRA 权重原地拷贝, 保持
+        原设备, 不替换 Parameter 对象。这样已构建的 optimizer 的参数引用仍然有效
+        (resume 训练必需), 且不会把参数从 GPU 拉回 CPU。数值上与旧的
+        `weight = nn.Parameter(saved_tensor)` 完全等价。
         """
         with safe_open(filename, framework="pt") as f:
             # LoRA A
             for i, w_A_linear in enumerate(self.A_weights):
                 saved_tensor = f.get_tensor(f"w_a_{i:03d}")
-                w_A_linear.weight = nn.Parameter(saved_tensor)
+                w_A_linear.weight.data.copy_(saved_tensor.to(w_A_linear.weight.device))
             # LoRA B
             for i, w_B_linear in enumerate(self.B_weights):
                 saved_tensor = f.get_tensor(f"w_b_{i:03d}")
-                w_B_linear.weight = nn.Parameter(saved_tensor)
+                w_B_linear.weight.data.copy_(saved_tensor.to(w_B_linear.weight.device))
             # mask_decoder
             decoder_state_dict = {
                 key[len("decoder."):]: f.get_tensor(key)

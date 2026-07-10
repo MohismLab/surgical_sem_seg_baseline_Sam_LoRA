@@ -1,4 +1,15 @@
-import json, os, sys, re, glob, time, csv
+"""
+the difference between surgical_semantic_seg/benmarking_algorithms/Sam_LoRA/inference_1fold_class_level_eval.py and surgical_semantic_seg/benmarking_algorithms/Sam_LoRA/inference_5fold_class_level_eval.py:
+this file can eval one fold at once.
+
+Run:
+CUDA_VISIBLE_DEVICES=1 nohup python -u inference_1fold_class_level_eval.py 5 6 \
+    > /mnt/hdd2/task2/sam_lora/class_eval_5fold_best_accumulation/infer_fold0_accumulation64.log 2>&1 &
+
+"""
+
+
+import json, os, sys, re, glob, time, csv, argparse
 import numpy as np
 import torch, yaml
 from PIL import Image
@@ -18,7 +29,7 @@ from torch.utils.data import DataLoader
 SAM_CKPT = "/mnt/hdd2/task2/sam/sam_vit_b_01ec64.pth"
 TEST_JSON = "/mnt/hdd2/task2/sam_lora/output_bbox_test.json"
 GT_MASK_DIR = "/mnt/hdd2/task2/sam_lora/test/masks"
-OUT_BASE = "/mnt/hdd2/task2/sam_lora/class_eval_5fold_best"
+OUT_BASE = "/mnt/hdd2/task2/sam_lora/class_eval_5fold_best_accumulation"
 RANK = 2
 DEVICE = "cuda:0"
 ALL_CLASSES = list(range(1, 29))
@@ -31,7 +42,21 @@ FOLD_CKPT = {
     1: "/mnt/hdd2/task2/sam_lora/exp_6/lora_rank2_10_epoch_in_100_epochs_best_6.safetensors",
     2: "/mnt/hdd2/task2/sam_lora/exp_5/lora_rank2_17_epoch_in_100_epochs_best_5.safetensors",
     3: "/mnt/hdd2/task2/sam_lora/exp_7/lora_rank2_19_epoch_in_100_epochs_best_7.safetensors",
-    4: "/mnt/hdd2/task2/sam_lora/exp_8/lora_rank2_22_epoch_in_100_epochs_best_8.safetensors"}
+    4: "/mnt/hdd2/task2/sam_lora/exp_8/lora_rank2_22_epoch_in_100_epochs_best_8.safetensors",
+    5: "/mnt/common-train-data/task2/sam_lora/exp_14/lora_rank2_39_epoch_in_100_epochs_final_14.safetensors", # accumulation final ckp
+    6: "/mnt/common-train-data/task2/sam_lora/exp_14/lora_rank2_34_epoch_in_100_epochs_best_14.safetensors" # accumulation best ckp
+}
+
+# --- Parse CLI args: which fold(s) to evaluate ---
+parser = argparse.ArgumentParser(description="Class-level evaluation for selected SAM_LoRA fold(s).")
+parser.add_argument("folds", type=int, nargs="+",
+                    help=f"Fold id(s) to evaluate. Available: {sorted(FOLD_CKPT.keys())}")
+cli_args = parser.parse_args()
+
+FOLDS = cli_args.folds
+for fold in FOLDS:
+    if fold not in FOLD_CKPT:
+        parser.error(f"Fold {fold} not in FOLD_CKPT. Available: {sorted(FOLD_CKPT.keys())}")
 
 os.makedirs(OUT_BASE, exist_ok=True)
 
@@ -194,13 +219,13 @@ def summarize(results_list, key_prefix=""):
 # Main
 # ============================================================
 prompt_index, test_data = load_test_index()
-log.info(f"5-Fold Class-Level Evaluation. Total instances per fold: {len(prompt_index)}")
-log.info(f"Folds: {list(FOLD_CKPT.keys())}")
+log.info(f"Class-Level Evaluation. Total instances per fold: {len(prompt_index)}")
+log.info(f"Folds to evaluate: {FOLDS}")
 
 all_fold_inst = {}
 all_fold_cls = {}
 
-for fold in range(5):
+for fold in FOLDS:
     log.info(f"\n{'='*60}")
     log.info(f"FOLD {fold}")
     log.info(f"{'='*60}")
@@ -227,12 +252,12 @@ for fold in range(5):
 # Final Summary
 # ============================================================
 log.info(f"\n{'='*70}")
-log.info("5-FOLD SUMMARY: SAM_LoRA Class-Level Evaluation")
+log.info("SUMMARY: SAM_LoRA Class-Level Evaluation")
 log.info(f"{'='*70}")
 
 log.info(f"{'Fold':<8} {'Inst HD95':>12} {'Class HD95':>12} {'Class mIoU':>12} {'Organ HD95':>12} {'Instr HD95':>12}")
 avg_inst_hd95, avg_cls_hd95, avg_cls_iou, avg_org_hd95, avg_ins_hd95 = [], [], [], [], []
-for fold in range(5):
+for fold in FOLDS:
     i = all_fold_inst[fold]
     c = all_fold_cls[fold]
     log.info(f"{fold:<8} {i['mHD95']:>12.2f} {c['mHD95']:>12.2f} {c['mIoU']:>12.4f} {c['Organ HD95']:>12.2f} {c['Instr HD95']:>12.2f}")
@@ -244,7 +269,7 @@ for fold in range(5):
 
 log.info(f"{'Mean':<8} {np.mean(avg_inst_hd95):>12.2f} {np.mean(avg_cls_hd95):>12.2f} {np.mean(avg_cls_iou):>12.4f} {np.mean(avg_org_hd95):>12.2f} {np.mean(avg_ins_hd95):>12.2f}")
 
-log.info(f"\n=== Cross-Model Comparison (Class-Level, 5-Fold Mean) ===")
+log.info(f"\n=== Cross-Model Comparison (Class-Level, Mean over {FOLDS}) ===")
 log.info(f"{'Model':<20} {'mIoU':>8} {'mDice':>8} {'mHD95':>8}")
 log.info(f"{'SAM_LoRA (ours)':<20} {np.mean(avg_cls_iou):>8.4f} {'?':>8} {np.mean(avg_cls_hd95):>8.2f}")
 log.info(f"{'SegFormer':<20} {'0.8005':>8} {'0.8652':>8} {'29.22':>8}")
@@ -252,11 +277,11 @@ log.info(f"{'nnUNet':<20} {'0.7091':>8} {'0.7863':>8} {'101.72':>8}")
 log.info(f"{'LongiSeg':<20} {'0.6040':>8} {'0.6875':>8} {'192.85':>8}")
 
 # Save summary CSV
-summary_csv = os.path.join(OUT_BASE, "summary_5fold.csv")
+summary_csv = os.path.join(OUT_BASE, f"summary_folds_{'_'.join(map(str, FOLDS))}.csv")
 with open(summary_csv, 'w', newline='') as f:
     writer = csv.writer(f)
     writer.writerow(["fold", "inst_HD95", "class_mIoU", "class_mDice", "class_mHD95", "class_Organ_HD95", "class_Instr_HD95"])
-    for fold in range(5):
+    for fold in FOLDS:
         i = all_fold_inst[fold]
         c = all_fold_cls[fold]
         writer.writerow([fold, i['mHD95'], c['mIoU'], c['mDice'], c['mHD95'], c['Organ HD95'], c['Instr HD95']])
