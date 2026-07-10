@@ -291,7 +291,17 @@ for epoch in range(num_epochs):
     else:
         no_improve_epochs += 1
         print(f"No improvement in IoU for {no_improve_epochs}/{patience} epochs")
-    
+
+    # 每个 epoch 都保存训练历史，便于下次继续训练
+    history_path = os.path.join(exp_dir, "training_history.npz")
+    np.savez(history_path,
+             train_loss=np.array(train_loss_history),
+             train_iou=np.array(train_iou_history),
+             val_loss=np.array(val_loss_history),
+             val_dice=np.array(val_dice_history),
+             val_iou=np.array(val_iou_history),
+             val_hd95=np.array(val_hd95_history))
+
     # 早停检查
     if no_improve_epochs >= patience:
         print(f"Early stopping triggered at epoch {epoch}")
@@ -304,6 +314,16 @@ sam_lora.save_lora_parameters(os.path.join(
             exp_dir, f"lora_rank{rank}_{epoch+1}_epoch_in_{num_epochs}_epochs_final_{num_exp}.safetensors"
 ))
 print(f"Final model saved after {epoch+1} epochs")
+
+# 保存训练历史
+history_path = os.path.join(exp_dir, "training_history.npz")
+np.savez(history_path,
+         train_loss=np.array(train_loss_history),
+         train_iou=np.array(train_iou_history),
+         val_loss=np.array(val_loss_history),
+         val_dice=np.array(val_dice_history),
+         val_iou=np.array(val_iou_history),
+         val_hd95=np.array(val_hd95_history))
 
 # 可视化训练和验证指标
 plt.figure(figsize=(15, 12))
