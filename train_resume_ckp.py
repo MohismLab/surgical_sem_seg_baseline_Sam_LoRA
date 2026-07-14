@@ -149,14 +149,14 @@ def main():
     processor = Samprocessor(model)
 
     # Create train dataloader —— 记得改成正在继续训练的那一折
-    train_ds = DatasetSegmentation(config_file, processor, mode="train2")
+    train_ds = DatasetSegmentation(config_file, processor, mode="train3")
     train_dataloader = DataLoader(train_ds,
                                   batch_size=config_file["TRAIN"]["BATCH_SIZE"],
                                   shuffle=True,
                                   collate_fn=collate_fn)
 
     # Create val dataloader —— 记得改成正在继续训练的那一折
-    val_ds = DatasetSegmentation(config_file, processor, mode="val2")
+    val_ds = DatasetSegmentation(config_file, processor, mode="val3")
     val_dataloader = DataLoader(val_ds,
                                 batch_size=1,
                                 shuffle=False,

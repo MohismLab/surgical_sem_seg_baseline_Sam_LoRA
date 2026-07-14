@@ -19,6 +19,24 @@ This file's difference with train.py:
 对于fold2 实验编号是num_exp=11
 
 对于fold3 实验编号是num_exp=12
+
+未完成: 对于fold4 实验编号是num_exp=13
+
+2026年06月19日 做带有decoder的sam_lora + data accumulation五折训练
+
+对于fold0-BATCH_ACCUMULATION_SIZE: 64 实验编号是num_exp=14 记得改train_ds和val_ds
+
+对于fold0-BATCH_ACCUMULATION_SIZE: 128 实验编号是num_exp=15
+CUDA_VISIBLE_DEVICES=1 nohup python \
+train_batch_accumulation.py \
+> /mnt/common-train-data/task2/sam_lora/train1_bas128_data_accumulation.log 2>&1 &
+
+
+未完成: 对于fold2 实验编号是num_exp=16
+
+未完成: 对于fold3 实验编号是num_exp=17
+
+未完成: 对于fold4 实验编号是num_exp=18
 """
 import os
 import random

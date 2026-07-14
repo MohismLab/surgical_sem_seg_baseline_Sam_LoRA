@@ -64,9 +64,10 @@ class DatasetSegmentation(Dataset):
 
 
         # 改成从json获取
+        json_folder = "/mnt/hdd2/task2/sam_lora"
         # train_set
         if "train" in mode: # ["train1", "train2", "train3", "train4", "train5"]
-            json_path = f"/mnt/hdd2/task2/sam_lora/output_bbox_{mode}.json"
+            json_path = f"{json_folder}/output_bbox_{mode}.json"
             print(f"train set: {json_path}")
             # 从JSON文件加载数据
             with open(json_path, 'r') as f:
@@ -99,13 +100,15 @@ class DatasetSegmentation(Dataset):
                 # 对每个图片的多个标注分别处理
                 for info in info_list:
                     self.img_files.append(img_path)
-                    self.mask_files.append(info["mask_path"])
+                    # mask_path in the JSON is a stale absolute path; rebuild it
+                    # from the current base_path: <base_path>/masks/<filename>
+                    self.mask_files.append(os.path.join(base_path, 'masks', os.path.basename(info["mask_path"])))
                     self.bboxes.append(info["bbox"])       
             # print(f"imgs: {self.img_files}")
             # print(f"masks: {self.mask_files}")
         elif "val" in mode: # ["val1", "val2", "val3", "val4", "val5"]
             # val_set
-            json_path = f"/mnt/hdd2/task2/sam_lora/output_bbox_{mode}.json"
+            json_path = f"{json_folder}/output_bbox_{mode}.json"
             print(f"val set: {json_path}")
             # 从JSON文件加载数据
             with open(json_path, 'r') as f:
@@ -117,14 +120,14 @@ class DatasetSegmentation(Dataset):
             self.bboxes = []
             
             # 获取基础路径
-            base_path_val = "/mnt/hdd2/task2/sam_lora/train"
+            base_path = config_file["DATASET"]["TRAIN_PATH"]
             # 从JSON中提取当前模式的数据
             mode_data = all_data.get(mode, {})
             
             for img_name, info_list in mode_data.items():
                 # 构建完整图片路径
                 # print(f"img_name: {img_name.split('_')[0]}")
-                img_path = os.path.join(base_path_val, 'images', img_name)               
+                img_path = os.path.join(base_path, 'images', img_name)               
                 
                 # 验证文件是否存在
                 if not os.path.exists(img_path):
@@ -137,14 +140,16 @@ class DatasetSegmentation(Dataset):
                 # 对每个图片的多个标注分别处理
                 for info in info_list:
                     self.img_files.append(img_path)
-                    self.mask_files.append(info["mask_path"])
+                    # mask_path in the JSON is a stale absolute path; rebuild it
+                    # from the current base_path: <base_path>/masks/<filename>
+                    self.mask_files.append(os.path.join(base_path, 'masks', os.path.basename(info["mask_path"])))
                     self.bboxes.append(info["bbox"])       
             # print(f"imgs: {self.img_files}")
             # print(f"masks: {self.mask_files}")
         else:
             # test set
             # 从JSON文件加载数据
-            json_path = "/mnt/hdd2/task2/sam_lora/output_bbox_test.json"
+            json_path = f"{json_folder}/output_bbox_test.json"
             with open(json_path, 'r') as f:
                 all_data = json.load(f)
             
@@ -171,7 +176,9 @@ class DatasetSegmentation(Dataset):
                 
                 for info in info_list:
                     self.img_files.append(img_path)
-                    self.mask_files.append(info["mask_path"])
+                    # mask_path in the JSON is a stale absolute path; rebuild it
+                    # from the current base_path: <base_path>/masks/<filename>
+                    self.mask_files.append(os.path.join(base_path, 'masks', os.path.basename(info["mask_path"])))
                     self.bboxes.append(info["bbox"])  
 
 
