@@ -8,6 +8,9 @@
 *.pth
 *.log
 *.safetensors
+*.svg
+*.png
+*.pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

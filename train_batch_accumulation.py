@@ -27,16 +27,12 @@ This file's difference with train.py:
 对于fold0-BATCH_ACCUMULATION_SIZE: 64 实验编号是num_exp=14 记得改train_ds和val_ds
 
 对于fold0-BATCH_ACCUMULATION_SIZE: 128 实验编号是num_exp=15
+
+对于fold1-BATCH_ACCUMULATION_SIZE: 128 实验编号是num_exp=16
 CUDA_VISIBLE_DEVICES=1 nohup python \
 train_batch_accumulation.py \
-> /mnt/common-train-data/task2/sam_lora/train1_bas128_data_accumulation.log 2>&1 &
+> /mnt/common-train-data/task2/sam_lora/train2_bas128_data_accumulation.log 2>&1 &
 
-
-未完成: 对于fold2 实验编号是num_exp=16
-
-未完成: 对于fold3 实验编号是num_exp=17
-
-未完成: 对于fold4 实验编号是num_exp=18
 """
 import os
 import random
@@ -107,7 +103,7 @@ def set_seed(seed=1049):
     torch.backends.cudnn.benchmark = False
 
 # 实验编号
-num_exp = 14
+num_exp = 16
 
 exp_dir = os.path.join("/mnt/common-train-data/task2/sam_lora", f"exp_{num_exp}")
 os.makedirs(exp_dir, exist_ok=True)
@@ -185,7 +181,7 @@ model = sam_lora.sam
 processor = Samprocessor(model)
 
 # Create train dataloader
-train_ds = DatasetSegmentation(config_file, processor, mode="train1")
+train_ds = DatasetSegmentation(config_file, processor, mode="train2")
 # train_ds = DatasetSegmentation(config_file, processor, mode="train4")
 train_dataloader = DataLoader(train_ds, 
                               batch_size=config_file["TRAIN"]["BATCH_SIZE"], 
@@ -193,7 +189,7 @@ train_dataloader = DataLoader(train_ds,
                               collate_fn=collate_fn)
 
 # Create val dataloader
-val_ds = DatasetSegmentation(config_file, processor, mode="val1")
+val_ds = DatasetSegmentation(config_file, processor, mode="val2")
 # val_ds = DatasetSegmentation(config_file, processor, mode="val4")
 val_dataloader = DataLoader(val_ds, 
                             batch_size=1, 
