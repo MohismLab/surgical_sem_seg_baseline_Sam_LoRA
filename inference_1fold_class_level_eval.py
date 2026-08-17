@@ -6,6 +6,8 @@ Run:
 CUDA_VISIBLE_DEVICES=1 nohup python -u inference_1fold_class_level_eval.py 5 6 \
     > /mnt/hdd2/task2/sam_lora/class_eval_5fold_best_accumulation/infer_fold0_accumulation64.log 2>&1 &
 
+CUDA_VISIBLE_DEVICES=1 nohup python -u inference_1fold_class_level_eval.py 7 8 \
+    > /mnt/hdd2/task2/sam_lora/class_eval_5fold_best_accumulation/infer_fold0_accumulation128.log 2>&1 &
 """
 
 
@@ -44,7 +46,11 @@ FOLD_CKPT = {
     3: "/mnt/hdd2/task2/sam_lora/exp_7/lora_rank2_19_epoch_in_100_epochs_best_7.safetensors",
     4: "/mnt/hdd2/task2/sam_lora/exp_8/lora_rank2_22_epoch_in_100_epochs_best_8.safetensors",
     5: "/mnt/common-train-data/task2/sam_lora/exp_14/lora_rank2_39_epoch_in_100_epochs_final_14.safetensors", # accumulation final ckp
-    6: "/mnt/common-train-data/task2/sam_lora/exp_14/lora_rank2_34_epoch_in_100_epochs_best_14.safetensors" # accumulation best ckp
+    6: "/mnt/common-train-data/task2/sam_lora/exp_14/lora_rank2_34_epoch_in_100_epochs_best_14.safetensors", # accumulation best ckp
+    7: "/mnt/common-train-data/task2/sam_lora/exp_17/lora_rank2_18_epoch_in_100_epochs_best_17.safetensors", # accumulation 128 best ckp
+    8: "/mnt/common-train-data/task2/sam_lora/exp_17/lora_rank2_23_epoch_in_100_epochs_final_17.safetensors", # accumulation 128 final ckp
+    9:"/mnt/common-train-data/task2/sam_lora/exp_16/lora_rank2_29_epoch_in_100_epochs_best_16.safetensors", # accumulation 128 best ckp f1
+    10:"/mnt/common-train-data/task2/sam_lora/exp_16/lora_rank2_34_epoch_in_100_epochs_final_16.safetensors", # accumulation 128 final ckp f1
 }
 
 # --- Parse CLI args: which fold(s) to evaluate ---
